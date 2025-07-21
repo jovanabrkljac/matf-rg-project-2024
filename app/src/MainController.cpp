@@ -1,5 +1,5 @@
 #include <MainController.hpp>
-#include <GUIController.hpp>
+#include <GuiController.hpp>
 #include <engine/platform/PlatformController.hpp>
 #include <engine/graphics/GraphicsController.hpp>
 #include <engine/graphics/OpenGL.hpp>
