@@ -6,6 +6,7 @@
 #include <engine/resources/ResourcesController.hpp>
 #include <engine/resources/Shader.hpp>
 #include<spdlog/spdlog.h>
+#include <random>
 
 
 namespace app {
@@ -72,39 +73,6 @@ void MainController::initialize() {
 bool MainController::loop() {
     auto platform = engine::core::Controller::get<engine::platform::PlatformController>();
     if (platform->key(engine::platform::KeyId::KEY_ESCAPE).is_down()) return false;
-
-    static bool wasPDown = false;
-    bool isPDown = platform->key(engine::platform::KeyId::KEY_P).is_down();
-
-    if (isPDown && !wasPDown) {// mora
-        if (animatePetals || waitingForPetalStart) {
-            // resetuj sve (ponovni pritisak P)
-            animatePetals = false;
-            waitingForPetalStart = false;
-            eventB_triggered = false;
-            restoreLighting = true;
-
-            petalAnimationTime = 0.0f;
-            timeSinceAction = 0.0f;
-            timeSincePetalStart = 0.0f;
-            eventB_duration = 0.0f;
-
-            //vrati originalne pozicije latica
-            petalMatrices = originalPetalMatrices;
-
-            //vrati svetlo
-            targetAmbient  = glm::vec3(0.2f);
-            targetDiffuse  = glm::vec3(0.5f);
-            targetSpecular = glm::vec3(0.8f);
-        } else {
-            // pokreni animaciju
-            waitingForPetalStart = true;
-            timeSinceAction = 0.0f;
-        }
-    }
-
-    wasPDown = isPDown;
-
     return true;
 }
 
@@ -220,15 +188,16 @@ void MainController::draw_petal() {
         petalMatrices.clear();
         originalPetalMatrices.clear();
 
-        std::srand(42);
+        std::mt19937 rng{42};
+        std::uniform_real_distribution<float> u01{0.0f, 1.0f};
 
         for (int i = 0; i < numPetals; ++i) {
-            float x = (static_cast<float>(std::rand()) / RAND_MAX - 0.5f) * spread;
-            float y = (static_cast<float>(std::rand()) / RAND_MAX) * 10.0f + 2.0f;
-            float z = (static_cast<float>(std::rand()) / RAND_MAX - 0.5f) * spread;
+            float x = (u01(rng) - 0.5f) * spread;
+            float y =  u01(rng) * 10.0f + 2.0f;
+            float z = (u01(rng) - 0.5f) * spread;
 
-            float rotation = static_cast<float>(std::rand()) / RAND_MAX * glm::two_pi<float>();
-            float scale = 0.2f + static_cast<float>(std::rand()) / RAND_MAX * 0.3f;
+            float rotation   = u01(rng) * glm::two_pi<float>();
+            float scale = 0.2f + u01(rng) * 0.3f;
 
             glm::mat4 model = glm::mat4(1.0f);
             model = glm::translate(model, glm::vec3(x + 6.0f, y, z)); // jer mi je hram pomeren od centra za 6 po x-osi
@@ -322,6 +291,40 @@ void MainController::update_camera() {
     if (platform->key(engine::platform::KeyId::KEY_D).is_down()) { camera->move_camera(engine::graphics::Camera::Movement::RIGHT, dt); }
 }
 
+void MainController::update_action() {
+    auto platform = engine::core::Controller::get<engine::platform::PlatformController>();
+    static bool wasPDown = false;
+    bool isPDown = platform->key(engine::platform::KeyId::KEY_P).is_down();
+
+    if (isPDown && !wasPDown) {// mora
+        if (animatePetals || waitingForPetalStart) {
+            // resetuj sve (ponovni pritisak P)
+            animatePetals = false;
+            waitingForPetalStart = false;
+            eventB_triggered = false;
+            restoreLighting = true;
+
+            petalAnimationTime = 0.0f;
+            timeSinceAction = 0.0f;
+            timeSincePetalStart = 0.0f;
+            eventB_duration = 0.0f;
+
+            //vrati originalne pozicije latica
+            petalMatrices = originalPetalMatrices;
+
+            //vrati svetlo
+            targetAmbient  = glm::vec3(0.2f);
+            targetDiffuse  = glm::vec3(0.5f);
+            targetSpecular = glm::vec3(0.8f);
+        } else {
+            // pokreni animaciju
+            waitingForPetalStart = true;
+            timeSinceAction = 0.0f;
+        }
+    }
+
+    wasPDown = isPDown;
+}
 void MainController::update() {
     update_camera();
 
@@ -369,6 +372,8 @@ void MainController::update() {
     currentAmbient  = glm::mix(currentAmbient,  targetAmbient,  1.0f * dt);
     currentDiffuse  = glm::mix(currentDiffuse,  targetDiffuse,  1.0f * dt);
     currentSpecular = glm::mix(currentSpecular, targetSpecular, 1.0f * dt);
+
+    update_action();
 
 }
 
