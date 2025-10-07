@@ -1,6 +1,7 @@
 
 #include <engine/resources/Model.hpp>
 #include <engine/resources/Shader.hpp>
+#include <glad/glad.h>
 
 namespace engine::resources {
 
