@@ -28,37 +28,23 @@ class MainController  : public engine::core::Controller
     std::vector<glm::mat4> originalPetalMatrices;
     bool initialized = false;
 
-    bool waitingForPetalStart = false;
-    float timeSinceAction = 0.0f;
-
-    bool animatePetals = false;
-    float petalAnimationTime = 0.0f;
-
-    bool eventB_triggered = false;
-    float timeSincePetalStart = 0.0f;
-
-    float eventB_duration = 0.0f;
-    bool restoreLighting = false;
-
-    //za fejd svetla u event b
-    glm::vec3 currentAmbient  = glm::vec3(0.2f);
-    glm::vec3 currentDiffuse  = glm::vec3(0.5f);
-    glm::vec3 currentSpecular = glm::vec3(0.8f);
-
-    glm::vec3 targetAmbient = currentAmbient;
-    glm::vec3 targetDiffuse = currentDiffuse;
-    glm::vec3 targetSpecular = currentSpecular;
-
     //bloom
     engine::graphics::BloomEffect bloom;
 
 public:
     std::string_view name() const override { return "app::MainController"; }
+
     void on_window_resize(int width, int height);
 
+    //za fejd svetla u event b
+    glm::vec3 currentAmbient = glm::vec3(0.2f);
+    glm::vec3 currentDiffuse = glm::vec3(0.5f);
+    glm::vec3 currentSpecular = glm::vec3(0.8f);
+
+    glm::vec3 targetAmbient = currentAmbient;
+    glm::vec3 targetDiffuse = currentDiffuse;
+    glm::vec3 targetSpecular = currentSpecular;
 };
 }
-
-
 
 #endif //MAINCONTROLLER_HPP

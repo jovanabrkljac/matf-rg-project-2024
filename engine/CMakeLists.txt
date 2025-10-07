@@ -9,7 +9,7 @@ include(CheckCXXCompilerFlag)
 check_cxx_compiler_flag("-std=c++23" COMPILER_SUPPORTS_CXX23)
 if (NOT COMPILER_SUPPORTS_CXX23)
     message(FATAL_ERROR "The compiler does not support C++23.")
-endif()
+endif ()
 
 file(GLOB ENGINE_SOURCES src/*.cpp)
 file(GLOB ENGINE_HEADERS include/engine/*.hpp)
@@ -37,6 +37,11 @@ set(GLAD_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libs/glad/include)
 add_library(${PROJECT_NAME}
         ${ENGINE_SOURCES}
         ${ENGINE_HEADERS}
+        include/engine/core/Process.hpp
+        src/Process.cpp
+        include/engine/core/Timer.hpp
+        include/engine/core/ProcessController.hpp
+        src/ProcessController.cpp
 )
 
 target_include_directories(${PROJECT_NAME}

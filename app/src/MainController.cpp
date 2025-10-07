@@ -1,13 +1,14 @@
 #include <MainController.hpp>
 #include <GuiController.hpp>
+#include <MovingPetals.hpp>
 #include <engine/platform/PlatformController.hpp>
 #include <engine/graphics/GraphicsController.hpp>
 #include <engine/graphics/OpenGL.hpp>
 #include <engine/resources/ResourcesController.hpp>
 #include <engine/resources/Shader.hpp>
-#include<spdlog/spdlog.h>
+#include <engine/core/ProcessController.hpp>
+#include <spdlog/spdlog.h>
 #include <random>
-
 
 namespace app {
 
@@ -76,6 +77,57 @@ bool MainController::loop() {
     return true;
 }
 
+void MainController::update_camera() {
+    auto gui_controller = engine::core::Controller::get<GUIController>();
+    if (gui_controller->is_enabled()) return;
+
+    auto platform = engine::core::Controller::get<engine::platform::PlatformController>();
+    auto graphics = engine::core::Controller::get<engine::graphics::GraphicsController>();
+    auto camera = graphics->camera();
+    float dt = platform->dt();
+
+    if (platform->key(engine::platform::KeyId::KEY_W).is_down()) camera->move_camera(engine::graphics::Camera::Movement::FORWARD, dt);
+    if (platform->key(engine::platform::KeyId::KEY_S).is_down()) camera->move_camera(engine::graphics::Camera::Movement::BACKWARD, dt);
+    if (platform->key(engine::platform::KeyId::KEY_A).is_down()) camera->move_camera(engine::graphics::Camera::Movement::LEFT, dt);
+    if (platform->key(engine::platform::KeyId::KEY_D).is_down()) camera->move_camera(engine::graphics::Camera::Movement::RIGHT, dt);
+}
+
+void MainController::update_action() {
+    auto platform = engine::core::Controller::get<engine::platform::PlatformController>();
+    static bool wasPDown = false;
+    bool isPDown = platform->key(engine::platform::KeyId::KEY_P).is_down();
+
+    if (isPDown && !wasPDown) {
+        auto processCtrl = engine::core::Controller::get<engine::core::ProcessController>();
+        processCtrl->add(std::make_unique<app::MovingPetals>(petalMatrices, originalPetalMatrices, 12.0f));
+    }
+
+    wasPDown = isPDown;
+}
+
+void MainController::update() {
+    update_camera();
+    update_action();
+}
+
+void MainController::begin_draw() { bloom.begin(); }
+
+void MainController::draw() {
+    draw_temple();
+    draw_lamp();
+    draw_petal();
+    draw_skybox();
+    draw_ground();
+    draw_tree();
+}
+
+void MainController::end_draw() {
+    auto platform = engine::platform::PlatformController::get<engine::platform::PlatformController>();
+    bloom.end({platform->window()->width(), platform->window()->height()});
+    platform->swap_buffers();
+}
+
+//crtanje objekata
 
 void MainController::draw_temple() {
     auto resource = engine::core::Controller::get<engine::resources::ResourcesController>();
@@ -95,86 +147,34 @@ void MainController::draw_temple() {
     shader->set_mat4("model", model);
     shader->set_float("shininess", 32.0f);
 
-    //Dir light menja se ukoliko je aktiviran event b
-    glm::vec3 ambient, diffuse, specular;
-    float dirIntensity = gui->get_dir_light_intensity();
-
-    if (eventB_triggered) {
-        ambient = currentAmbient * dirIntensity;
-        diffuse = currentDiffuse * dirIntensity;
-        specular = currentSpecular * dirIntensity;
-    } else {
-        ambient = glm::vec3(0.2f) * dirIntensity;
-        diffuse = glm::vec3(0.5f) * dirIntensity;
-        specular = glm::vec3(0.8f) * dirIntensity;
-    }
+    glm::vec3 ambient = currentAmbient * gui->get_dir_light_intensity();
+    glm::vec3 diffuse = currentDiffuse * gui->get_dir_light_intensity();
+    glm::vec3 specular = currentSpecular * gui->get_dir_light_intensity();
 
     shader->set_vec3("dirLight.direction", glm::vec3(-0.3f, -1.0f, -0.3f));
     shader->set_vec3("dirLight.ambient", ambient);
     shader->set_vec3("dirLight.diffuse", diffuse);
     shader->set_vec3("dirLight.specular", specular);
 
-
-    // Point light 1
     glm::vec3 color = gui->get_point_light_color();
     float pIntensity = gui->get_point_light_intensity();
 
     shader->set_vec3("pointLights[0].position", glm::vec3(-2.0f, 3.5f, -0.6f));
-    shader->set_float("pointLights[0].constant", 1.0f);
-    shader->set_float("pointLights[0].linear", 0.14f);
-    shader->set_float("pointLights[0].quadratic", 0.07f);
-    shader->set_vec3("pointLights[0].ambient",  color * 0.2f * pIntensity);
-    shader->set_vec3("pointLights[0].diffuse",  color * 0.8f * pIntensity);
-    shader->set_vec3("pointLights[0].specular", color * 1.0f * pIntensity);
-
-    // Point light 2
     shader->set_vec3("pointLights[1].position", glm::vec3(14.0f, 3.5f, -0.6f));
-    shader->set_float("pointLights[1].constant", 1.0f);
-    shader->set_float("pointLights[1].linear", 0.14f);
-    shader->set_float("pointLights[1].quadratic", 0.07f);
-    shader->set_vec3("pointLights[1].ambient",  color * 0.2f * pIntensity);
-    shader->set_vec3("pointLights[1].diffuse",  color * 0.8f * pIntensity);
-    shader->set_vec3("pointLights[1].specular", color * 1.0f * pIntensity);
+
+    for (int i = 0; i < 2; ++i) {
+        shader->set_float("pointLights[" + std::to_string(i) + "].constant", 1.0f);
+        shader->set_float("pointLights[" + std::to_string(i) + "].linear", 0.14f);
+        shader->set_float("pointLights[" + std::to_string(i) + "].quadratic", 0.07f);
+        shader->set_vec3("pointLights[" + std::to_string(i) + "].ambient", color * 0.2f * pIntensity);
+        shader->set_vec3("pointLights[" + std::to_string(i) + "].diffuse", color * 0.8f * pIntensity);
+        shader->set_vec3("pointLights[" + std::to_string(i) + "].specular", color * 1.0f * pIntensity);
+    }
 
     shader->set_vec3("viewPos", graphics->camera()->Position);
 
     temple->draw(shader);
 }
-
-
-
-void MainController::draw_lamp() {
-    auto resource = engine::core::Controller::get<engine::resources::ResourcesController>();
-    auto graphics = engine::core::Controller::get<engine::graphics::GraphicsController>();
-
-    engine::resources::Model* lampModel = resource->model("lamp");
-    engine::resources::Shader* lampShader = resource->shader("lamp");
-
-    lampShader->use();
-    lampShader->set_mat4("projection", graphics->projection_matrix());
-    lampShader->set_mat4("view", graphics->camera()->view_matrix());
-
-    glm::vec3 lampPositions[] = {
-        glm::vec3(-2.0f, 0.69f, 0.0f),
-        glm::vec3(14.0f, 0.69f, 0.0f)
-    };
-
-    auto gui = engine::core::Controller::get<app::GUIController>();
-    glm::vec3 lightColor = gui->get_point_light_color();
-
-    for (int i = 0; i < 2; ++i) {
-        glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, lampPositions[i]);
-        model=glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-        model = glm::scale(model, glm::vec3(0.7f));
-        lampShader->set_mat4("model", model);
-        glm::vec3 emissionColor = lightColor * 2.0f;
-        lampShader->set_vec3("emissionColor", emissionColor);
-        lampShader->set_float("bloomThreshold", 0.5f);
-        lampModel->draw(lampShader);
-    }
-}
-
 
 void MainController::draw_petal() {
     auto resource = engine::core::Controller::get<engine::resources::ResourcesController>();
@@ -212,16 +212,40 @@ void MainController::draw_petal() {
         initialized = true;
     }
 
-    //ako treba da ih rotiramo azuriracemo
-    if (animatePetals) {
-        petalModel->set_instance_data(petalMatrices);
-    }
 
     petalShader->use();
     petalShader->set_mat4("projection", graphics->projection_matrix());
     petalShader->set_mat4("view", graphics->camera()->view_matrix());
     petalShader->set_int("texture_diffuse1", 0);
     petalModel->draw_instanced(petalShader, static_cast<int>(petalMatrices.size()));
+}
+
+void MainController::draw_lamp() {
+    auto resource = engine::core::Controller::get<engine::resources::ResourcesController>();
+    auto graphics = engine::core::Controller::get<engine::graphics::GraphicsController>();
+
+    engine::resources::Model *lampModel = resource->model("lamp");
+    engine::resources::Shader *lampShader = resource->shader("lamp");
+
+    lampShader->use();
+    lampShader->set_mat4("projection", graphics->projection_matrix());
+    lampShader->set_mat4("view", graphics->camera()->view_matrix());
+
+    glm::vec3 lampPositions[] = {glm::vec3(-2.0f, 0.69f, 0.0f), glm::vec3(14.0f, 0.69f, 0.0f)};
+    auto gui = engine::core::Controller::get<app::GUIController>();
+    glm::vec3 lightColor = gui->get_point_light_color();
+
+    for (int i = 0; i < 2; ++i) {
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, lampPositions[i]);
+        model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        model = glm::scale(model, glm::vec3(0.7f));
+        lampShader->set_mat4("model", model);
+        glm::vec3 emissionColor = lightColor * 2.0f;
+        lampShader->set_vec3("emissionColor", emissionColor);
+        lampShader->set_float("bloomThreshold", 0.5f);
+        lampModel->draw(lampShader);
+    }
 }
 
 void MainController::draw_ground() {
@@ -271,124 +295,6 @@ void MainController::draw_tree() {
     //model2 = glm::scale(model2, glm::vec3(0.5f));
     shader->set_mat4("model", model2);
     deadTreeModel->draw(shader);
-
-
-}
-
-
-void MainController::update_camera() {
-    auto gui_controller = engine::core::Controller::get<GUIController>();
-    if (gui_controller->is_enabled()) {
-        return;
-    }
-    auto platform = engine::core::Controller::get<engine::platform::PlatformController>();
-    auto graphics = engine::core::Controller::get<engine::graphics::GraphicsController>();
-    auto camera = graphics->camera();
-    float dt = platform->dt();
-    if (platform->key(engine::platform::KeyId::KEY_W).is_down()) { camera->move_camera(engine::graphics::Camera::Movement::FORWARD, dt); }
-    if (platform->key(engine::platform::KeyId::KEY_S).is_down()) { camera->move_camera(engine::graphics::Camera::Movement::BACKWARD, dt); }
-    if (platform->key(engine::platform::KeyId::KEY_A).is_down()) { camera->move_camera(engine::graphics::Camera::Movement::LEFT, dt); }
-    if (platform->key(engine::platform::KeyId::KEY_D).is_down()) { camera->move_camera(engine::graphics::Camera::Movement::RIGHT, dt); }
-}
-
-void MainController::update_action() {
-    auto platform = engine::core::Controller::get<engine::platform::PlatformController>();
-    static bool wasPDown = false;
-    bool isPDown = platform->key(engine::platform::KeyId::KEY_P).is_down();
-
-    if (isPDown && !wasPDown) {// mora
-        if (animatePetals || waitingForPetalStart) {
-            // resetuj sve (ponovni pritisak P)
-            animatePetals = false;
-            waitingForPetalStart = false;
-            eventB_triggered = false;
-            restoreLighting = true;
-
-            petalAnimationTime = 0.0f;
-            timeSinceAction = 0.0f;
-            timeSincePetalStart = 0.0f;
-            eventB_duration = 0.0f;
-
-            //vrati originalne pozicije latica
-            petalMatrices = originalPetalMatrices;
-
-            //vrati svetlo
-            targetAmbient  = glm::vec3(0.2f);
-            targetDiffuse  = glm::vec3(0.5f);
-            targetSpecular = glm::vec3(0.8f);
-        } else {
-            // pokreni animaciju
-            waitingForPetalStart = true;
-            timeSinceAction = 0.0f;
-        }
-    }
-
-    wasPDown = isPDown;
-}
-void MainController::update() {
-    update_camera();
-
-
-        auto dt = engine::platform::PlatformController::get<engine::platform::PlatformController>()->dt();
-
-        // kada se pritisne P krece akcija 3 sek cekanja
-        if (waitingForPetalStart) {
-            timeSinceAction += dt;
-            if (timeSinceAction >= 3.0f) {
-                animatePetals = true;
-                waitingForPetalStart = false;
-                petalAnimationTime = 0.0f;
-                timeSincePetalStart = 0.0f;
-            }
-        }
-
-        // kada latice lete, animiraj ih
-        if (animatePetals) {
-            petalAnimationTime += dt;
-
-            for (size_t i = 0; i < petalMatrices.size(); ++i) {
-                float angle = glm::radians(petalAnimationTime * 20.0f + i);  // rotacija
-                float yOffset = sin(petalAnimationTime * 1.2f + i) * 0.4f;  //mrdanje
-
-                glm::mat4 offset = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, yOffset, 0.0f));
-                offset = glm::rotate(offset, angle, glm::vec3(0.0f, 1.0f, 0.0f));
-
-                petalMatrices[i] = offset * originalPetalMatrices[i];
-            }
-
-            //event b -menjanje svetla
-            if (!eventB_triggered) {
-                timeSincePetalStart += dt;
-                if (timeSincePetalStart >= 5.0f) {
-                    eventB_triggered = true;
-                    eventB_duration = 0.0f;
-                    targetAmbient  = glm::vec3(0.6f, 0.28f, 0.30f);
-                    targetDiffuse  = glm::vec3(0.75f, 0.60f, 0.65f);
-                    targetSpecular = glm::vec3(0.9f,  0.7f,  0.75f);
-                }
-            }
-        }
-
-    currentAmbient  = glm::mix(currentAmbient,  targetAmbient,  1.0f * dt);
-    currentDiffuse  = glm::mix(currentDiffuse,  targetDiffuse,  1.0f * dt);
-    currentSpecular = glm::mix(currentSpecular, targetSpecular, 1.0f * dt);
-
-    update_action();
-
-}
-
-void MainController::begin_draw() {
-    bloom.begin();
-}
-
-void MainController::draw() {
-
-    draw_temple();
-    draw_lamp();
-    draw_petal();
-    draw_skybox();
-    draw_ground();
-    draw_tree();
 }
 
 void MainController::draw_skybox() {
@@ -396,12 +302,5 @@ void MainController::draw_skybox() {
     auto skybox = engine::core::Controller::get<engine::resources::ResourcesController>()->skybox("sky");
     engine::core::Controller::get<engine::graphics::GraphicsController>()->draw_skybox(shader, skybox);
 }
-
-void MainController::end_draw() {
-    auto platform = engine::platform::PlatformController::get<engine::platform::PlatformController>();
-    bloom.end({platform->window()->width(), platform->window()->height()});
-    platform->swap_buffers();
-}
-
 
 }
