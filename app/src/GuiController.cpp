@@ -8,18 +8,14 @@
 #include <engine/platform/PlatformController.hpp>
 #include <imgui.h>
 
-namespace app{
+namespace app {
 
-void GUIController::initialize(){
-    set_enable(false);
-}
+void GUIController::initialize() { set_enable(false); }
 
 void GUIController::poll_events() {
     const auto platform = engine::core::Controller::get<engine::platform::PlatformController>();
     if (platform->key(engine::platform::KeyId::KEY_F2)
-                .state() == engine::platform::Key::State::JustPressed) {
-        set_enable(!is_enabled());
-                }
+                .state() == engine::platform::Key::State::JustPressed) { set_enable(!is_enabled()); }
 }
 
 void GUIController::draw() {
@@ -31,12 +27,12 @@ void GUIController::draw() {
 
     ImGui::Separator();
     ImGui::Text("Point Light Settings");
-    ImGui::SliderFloat("Point Light Intensity", &pointLightIntensity, 0.0f, 5.0f);
-    ImGui::ColorEdit3("Point Light Color", (float*)&pointLightColor);
+    ImGui::SliderFloat("Point Light Intensity", &m_point_light_intensity, 0.0f, 5.0f);
+    ImGui::ColorEdit3("Point Light Color", (float *) &m_point_light_color);
 
     ImGui::Separator();
     ImGui::Text("Directional Light Settings");
-    ImGui::SliderFloat("Directional Light Intensity", &dirLightIntensity, 0.0f, 5.0f);
+    ImGui::SliderFloat("Directional Light Intensity", &m_dir_light_intensity, 0.0f, 5.0f);
 
     ImGui::Separator();
     ImGui::Text("Camera Info");
@@ -51,6 +47,5 @@ void GUIController::draw() {
 
     graphics->end_gui();
 }
-
 
 }

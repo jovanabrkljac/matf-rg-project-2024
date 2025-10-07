@@ -11,15 +11,15 @@ MovingPetals::MovingPetals(std::vector<glm::mat4> &petals,
                            std::vector<glm::mat4> &originals,
                            float duration)
 : m_petals(petals)
-, m_originals(originals) { setDuration(duration); }
+, m_originals(originals) { set_duration(duration); }
 
 bool MovingPetals::initialize() {
     spdlog::info("MovingPetals process started (duration = {}s)", m_duration);
     m_timer.start();
     m_elapsed = 0.0f;
-    m_lightChanged = false;
-    m_lightRestored = false;
-    setState(State::Running);
+    m_light_changed = false;
+    m_light_restored = false;
+    set_state(State::Running);
     return true;
 }
 
@@ -29,18 +29,18 @@ void MovingPetals::update(float dt) {
     if (dt > 1.0f) dt *= 0.001f;
 
     m_elapsed += dt;
-    animatePetals(dt);
-    updateLighting(dt);
+    animate_petals(dt);
+    update_lighting(dt);
 
     if (m_elapsed >= m_duration) {
         finalize();
-        setState(State::Done);
+        set_state(State::Done);
         spdlog::info("MovingPetals finished after {:.2f}s", m_elapsed);
     }
 }
 
 // animacija latica
-void MovingPetals::animatePetals(float dt) {
+void MovingPetals::animate_petals(float dt) {
     for (size_t i = 0; i < m_petals.size(); ++i) {
         float angle = glm::radians(m_elapsed * 20.0f + static_cast<float>(i));
         float yOffset = sin(m_elapsed * 1.2f + static_cast<float>(i)) * 0.4f;
@@ -55,7 +55,7 @@ void MovingPetals::animatePetals(float dt) {
 }
 
 // pojacava svetlo roze boje i smanjuje ga
-void MovingPetals::updateLighting(float dt) {
+void MovingPetals::update_lighting(float dt) {
     auto mainCtrl = engine::core::Controller::get<app::MainController>();
     if (!mainCtrl) return;
 
@@ -69,22 +69,22 @@ void MovingPetals::updateLighting(float dt) {
     // ideja je da izmedju 4-6 sekunde svetlo se pojacava, 6-10s odrzava intenzitete, a posle 10s postepeno slabi
     if (m_elapsed >= 4.0f && m_elapsed < 6.0f) {
         float t = (m_elapsed - 4.0f) / 2.0f;
-        mainCtrl->currentAmbient = glm::mix(normalAmbient, brightAmbient, t);
-        mainCtrl->currentDiffuse = glm::mix(normalDiffuse, brightDiffuse, t);
-        mainCtrl->currentSpecular = glm::mix(normalSpecular, brightSpecular, t);
+        mainCtrl->current_ambient = glm::mix(normalAmbient, brightAmbient, t);
+        mainCtrl->current_diffuse = glm::mix(normalDiffuse, brightDiffuse, t);
+        mainCtrl->current_specular = glm::mix(normalSpecular, brightSpecular, t);
     } else if (m_elapsed >= 6.0f && m_elapsed < 10.0f) {
-        mainCtrl->currentAmbient = brightAmbient;
-        mainCtrl->currentDiffuse = brightDiffuse;
-        mainCtrl->currentSpecular = brightSpecular;
+        mainCtrl->current_ambient = brightAmbient;
+        mainCtrl->current_diffuse = brightDiffuse;
+        mainCtrl->current_specular = brightSpecular;
     } else if (m_elapsed >= 10.0f && m_elapsed < 12.0f) {
         float t = (m_elapsed - 10.0f) / 2.0f;
-        mainCtrl->currentAmbient = glm::mix(brightAmbient, normalAmbient, t);
-        mainCtrl->currentDiffuse = glm::mix(brightDiffuse, normalDiffuse, t);
-        mainCtrl->currentSpecular = glm::mix(brightSpecular, normalSpecular, t);
+        mainCtrl->current_ambient = glm::mix(brightAmbient, normalAmbient, t);
+        mainCtrl->current_diffuse = glm::mix(brightDiffuse, normalDiffuse, t);
+        mainCtrl->current_specular = glm::mix(brightSpecular, normalSpecular, t);
     } else if (m_elapsed >= 12.0f) {
-        mainCtrl->currentAmbient = normalAmbient;
-        mainCtrl->currentDiffuse = normalDiffuse;
-        mainCtrl->currentSpecular = normalSpecular;
+        mainCtrl->current_ambient = normalAmbient;
+        mainCtrl->current_diffuse = normalDiffuse;
+        mainCtrl->current_specular = normalSpecular;
     }
 }
 
@@ -99,9 +99,9 @@ void MovingPetals::finalize() {
 
     auto mainCtrl = engine::core::Controller::get<app::MainController>();
     if (mainCtrl) {
-        mainCtrl->currentAmbient = glm::vec3(0.2f);
-        mainCtrl->currentDiffuse = glm::vec3(0.5f);
-        mainCtrl->currentSpecular = glm::vec3(0.8f);
+        mainCtrl->current_ambient = glm::vec3(0.2f);
+        mainCtrl->current_diffuse = glm::vec3(0.5f);
+        mainCtrl->current_specular = glm::vec3(0.8f);
     }
 }
 

@@ -14,7 +14,9 @@ namespace app {
 
 class MainPlatformEventObserver : public engine::platform::PlatformEventObserver {
     void on_mouse_move(engine::platform::MousePosition position) override;
+
     void on_scroll(engine::platform::MousePosition position) override;
+
     void on_window_resize(int width, int height) override;
 };
 
@@ -43,14 +45,10 @@ void MainPlatformEventObserver::on_scroll(engine::platform::MousePosition positi
 void MainPlatformEventObserver::on_window_resize(int width, int height) {
 
     auto mainCtrl = engine::core::Controller::get<app::MainController>();
-    if (mainCtrl) {
-        mainCtrl->on_window_resize(width, height);
-    }
+    if (mainCtrl) { mainCtrl->on_window_resize(width, height); }
 }
 
-void MainController::on_window_resize(int width, int height) {
-    bloom.resize(width, height);
-}
+void MainController::on_window_resize(int width, int height) { m_bloom.resize(width, height); }
 
 void MainController::initialize() {
     spdlog::info("MainController initialized !");
@@ -63,11 +61,11 @@ void MainController::initialize() {
 
     camera->Position = glm::vec3(6.0f, 5.0f, 28.0f);
 
-    //bloom init
+    //m_bloom init
     auto resource = engine::core::Controller::get<engine::resources::ResourcesController>();
-    engine::resources::Shader* blurShader  = resource->shader("bloom_blur");
-    engine::resources::Shader* finalShader = resource->shader("bloom_final");
-    bloom.initialize(platform->window()->width(), platform->window()->height(), blurShader, finalShader);
+    engine::resources::Shader *blurShader = resource->shader("bloom_blur");
+    engine::resources::Shader *finalShader = resource->shader("bloom_final");
+    m_bloom.initialize(platform->window()->width(), platform->window()->height(), blurShader, finalShader);
 
 }
 
@@ -99,7 +97,7 @@ void MainController::update_action() {
 
     if (isPDown && !wasPDown) {
         auto processCtrl = engine::core::Controller::get<engine::core::ProcessController>();
-        processCtrl->add(std::make_unique<app::MovingPetals>(petalMatrices, originalPetalMatrices, 12.0f));
+        processCtrl->add(std::make_unique<app::MovingPetals>(m_petal_matrices, m_original_petal_matrices, 12.0f));
     }
 
     wasPDown = isPDown;
@@ -110,7 +108,7 @@ void MainController::update() {
     update_action();
 }
 
-void MainController::begin_draw() { bloom.begin(); }
+void MainController::begin_draw() { m_bloom.begin(); }
 
 void MainController::draw() {
     draw_temple();
@@ -123,7 +121,7 @@ void MainController::draw() {
 
 void MainController::end_draw() {
     auto platform = engine::platform::PlatformController::get<engine::platform::PlatformController>();
-    bloom.end({platform->window()->width(), platform->window()->height()});
+    m_bloom.end({platform->window()->width(), platform->window()->height()});
     platform->swap_buffers();
 }
 
@@ -147,9 +145,9 @@ void MainController::draw_temple() {
     shader->set_mat4("model", model);
     shader->set_float("shininess", 32.0f);
 
-    glm::vec3 ambient = currentAmbient * gui->get_dir_light_intensity();
-    glm::vec3 diffuse = currentDiffuse * gui->get_dir_light_intensity();
-    glm::vec3 specular = currentSpecular * gui->get_dir_light_intensity();
+    glm::vec3 ambient = current_ambient * gui->get_dir_light_intensity();
+    glm::vec3 diffuse = current_diffuse * gui->get_dir_light_intensity();
+    glm::vec3 specular = current_specular * gui->get_dir_light_intensity();
 
     shader->set_vec3("dirLight.direction", glm::vec3(-0.3f, -1.0f, -0.3f));
     shader->set_vec3("dirLight.ambient", ambient);
@@ -182,34 +180,34 @@ void MainController::draw_petal() {
     auto petalModel = resource->model("petal");
     auto petalShader = resource->shader("petal");
 
-    if (!initialized) {
+    if (!m_initialized) {
         const int numPetals = 1500;
         const float spread = 30.0f;
-        petalMatrices.clear();
-        originalPetalMatrices.clear();
+        m_petal_matrices.clear();
+        m_original_petal_matrices.clear();
 
         std::mt19937 rng{42};
         std::uniform_real_distribution<float> u01{0.0f, 1.0f};
 
         for (int i = 0; i < numPetals; ++i) {
             float x = (u01(rng) - 0.5f) * spread;
-            float y =  u01(rng) * 10.0f + 2.0f;
+            float y = u01(rng) * 10.0f + 2.0f;
             float z = (u01(rng) - 0.5f) * spread;
 
-            float rotation   = u01(rng) * glm::two_pi<float>();
+            float rotation = u01(rng) * glm::two_pi<float>();
             float scale = 0.2f + u01(rng) * 0.3f;
 
             glm::mat4 model = glm::mat4(1.0f);
-            model = glm::translate(model, glm::vec3(x + 6.0f, y, z)); // jer mi je hram pomeren od centra za 6 po x-osi
+            model = glm::translate(model, glm::vec3(x + 6.0f, y, z));// jer mi je hram pomeren od centra za 6 po x-osi
             model = glm::rotate(model, rotation, glm::vec3(0.0f, 1.0f, 0.0f));
             model = glm::scale(model, glm::vec3(scale));
 
-            petalMatrices.push_back(model);
-            originalPetalMatrices.push_back(model);
+            m_petal_matrices.push_back(model);
+            m_original_petal_matrices.push_back(model);
         }
 
-        petalModel->set_instance_data(petalMatrices);
-        initialized = true;
+        petalModel->set_instance_data(m_petal_matrices);
+        m_initialized = true;
     }
 
 
@@ -217,7 +215,7 @@ void MainController::draw_petal() {
     petalShader->set_mat4("projection", graphics->projection_matrix());
     petalShader->set_mat4("view", graphics->camera()->view_matrix());
     petalShader->set_int("texture_diffuse1", 0);
-    petalModel->draw_instanced(petalShader, static_cast<int>(petalMatrices.size()));
+    petalModel->draw_instanced(petalShader, static_cast<int>(m_petal_matrices.size()));
 }
 
 void MainController::draw_lamp() {
@@ -256,7 +254,7 @@ void MainController::draw_ground() {
     auto shader = resource->shader("ground");
 
     shader->use();
-    shader->set_vec3("tintColor", glm::vec3(0.15f, 0.45f, 0.15f)); // boja slicna krovu
+    shader->set_vec3("tintColor", glm::vec3(0.15f, 0.45f, 0.15f));// boja slicna krovu
     shader->set_float("tintStrength", 0.3f);
 
     shader->set_mat4("projection", graphics->projection_matrix());
@@ -264,7 +262,7 @@ void MainController::draw_ground() {
 
     glm::mat4 model = glm::mat4(1.0f);
     model = glm::translate(model, glm::vec3(0.0f, -1.6f, 0.0f));
-    model=glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     model = glm::scale(model, glm::vec3(50.0f));
     shader->set_mat4("model", model);
     groundModel->draw(shader);
@@ -291,7 +289,7 @@ void MainController::draw_tree() {
 
     glm::mat4 model2 = glm::mat4(1.0f);
     model2 = glm::translate(model2, glm::vec3(-7.0f, 0.0f, -3.0f));
-    model2=glm::rotate(model2, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    model2 = glm::rotate(model2, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     //model2 = glm::scale(model2, glm::vec3(0.5f));
     shader->set_mat4("model", model2);
     deadTreeModel->draw(shader);

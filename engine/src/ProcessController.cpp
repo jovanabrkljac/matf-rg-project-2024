@@ -17,8 +17,8 @@ void ProcessController::update() {
         auto &process = *it;
         // inizijalizacija procesa ako je tek kreiran
         if (process->state() == Process::State::JustCreated) {
-            if (process->initialize()) process->setState(Process::State::Running);
-            else process->setState(Process::State::Done);
+            if (process->initialize()) process->set_state(Process::State::Running);
+            else process->set_state(Process::State::Done);
         }
         // azuriraj aktivne procese
         if (process->state() == Process::State::Running) process->update(dt);
