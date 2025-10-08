@@ -34,12 +34,12 @@ class MainController : public engine::core::Controller {
 
     void end_draw() override;
 
-    //za eventove
+    void terminate() override;
+
     std::vector<glm::mat4> m_petal_matrices;
     std::vector<glm::mat4> m_original_petal_matrices;
     bool m_initialized = false;
 
-    //bloom
     engine::graphics::BloomEffect m_bloom;
 
 public:
@@ -47,7 +47,6 @@ public:
 
     void on_window_resize(int width, int height);
 
-    //za fejd svetla u event b
     glm::vec3 current_ambient = glm::vec3(0.2f);
     glm::vec3 current_diffuse = glm::vec3(0.5f);
     glm::vec3 current_specular = glm::vec3(0.8f);

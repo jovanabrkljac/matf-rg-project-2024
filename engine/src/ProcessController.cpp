@@ -8,21 +8,17 @@ void ProcessController::add(std::unique_ptr<Process> process) { m_processes.push
 
 void ProcessController::update() {
     auto platform = engine::platform::PlatformController::get<engine::platform::PlatformController>();
-    float dt = platform->dt();
-
-    // ako platform->dt() vraca milisekunde, pretvori u sekunde
-    if (dt > 1.0f) dt *= 0.001f;
 
     for (auto it = m_processes.begin(); it != m_processes.end();) {
         auto &process = *it;
-        // inizijalizacija procesa ako je tek kreiran
+
         if (process->state() == Process::State::JustCreated) {
             if (process->initialize()) process->set_state(Process::State::Running);
             else process->set_state(Process::State::Done);
         }
-        // azuriraj aktivne procese
-        if (process->state() == Process::State::Running) process->update(dt);
-        // ukloni zavrsene procese
+
+        if (process->state() == Process::State::Running) process->update();
+
         if (process->state() == Process::State::Done) {
             process->finalize();
             it = m_processes.erase(it);

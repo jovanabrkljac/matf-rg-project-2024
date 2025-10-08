@@ -2,7 +2,7 @@
 #define MOVINGPETALS_HPP
 
 #include <engine/core/Process.hpp>
-#include <engine/core/Timer.hpp>
+#include <engine/util/Timer.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <vector>
@@ -17,7 +17,7 @@ public:
 
     bool initialize() override;
 
-    void update(float dt) override;
+    void update() override;
 
     void finalize() override;
 
@@ -25,14 +25,12 @@ private:
     std::vector<glm::mat4> &m_petals;
     std::vector<glm::mat4> &m_originals;
 
-    engine::core::Timer m_timer;
+    engine::util::Timer m_timer;
     float m_elapsed{0.0f};
-    bool m_light_changed{false};
-    bool m_light_restored{false};
 
-    void animate_petals(float dt);
+    void animate_petals(float elapsed);
 
-    void update_lighting(float dt);
+    void update_lighting(float elapsed);
 };
 
 }

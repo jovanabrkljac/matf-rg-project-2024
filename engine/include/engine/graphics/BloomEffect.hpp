@@ -1,7 +1,3 @@
-//
-// Created by Jovana on 16.7.2025..
-//
-
 #ifndef BLOOMEFFECT_HPP
 #define BLOOMEFFECT_HPP
 #include <engine/resources/Shader.hpp>
@@ -13,6 +9,8 @@ namespace engine::graphics {
         BloomEffect();
 
         ~BloomEffect();
+
+        void terminate();
 
         void initialize(int width, int height, resources::Shader *blur_shader, resources::Shader *final_shader);
 

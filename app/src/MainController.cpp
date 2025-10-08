@@ -61,7 +61,6 @@ void MainController::initialize() {
 
     camera->Position = glm::vec3(6.0f, 5.0f, 28.0f);
 
-    //m_bloom init
     auto resource = engine::core::Controller::get<engine::resources::ResourcesController>();
     engine::resources::Shader *blurShader = resource->shader("bloom_blur");
     engine::resources::Shader *finalShader = resource->shader("bloom_final");
@@ -124,8 +123,6 @@ void MainController::end_draw() {
     m_bloom.end({platform->window()->width(), platform->window()->height()});
     platform->swap_buffers();
 }
-
-//crtanje objekata
 
 void MainController::draw_temple() {
     auto resource = engine::core::Controller::get<engine::resources::ResourcesController>();
@@ -300,5 +297,7 @@ void MainController::draw_skybox() {
     auto skybox = engine::core::Controller::get<engine::resources::ResourcesController>()->skybox("sky");
     engine::core::Controller::get<engine::graphics::GraphicsController>()->draw_skybox(shader, skybox);
 }
+
+void MainController::terminate() { m_bloom.terminate(); }
 
 }

@@ -8,7 +8,9 @@ using namespace engine::graphics;
 
 BloomEffect::BloomEffect() = default;
 
-BloomEffect::~BloomEffect() {
+BloomEffect::~BloomEffect() = default;
+
+void BloomEffect::terminate() {
     CHECKED_GL_CALL(glDeleteFramebuffers, 1, &m_scene_fbo);
     CHECKED_GL_CALL(glDeleteTextures, 1, &m_scene_color_tex);
     CHECKED_GL_CALL(glDeleteTextures, 1, &m_bright_tex);
@@ -33,7 +35,7 @@ void BloomEffect::initialize(int w, int h, resources::Shader *blurShader, resour
     CHECKED_GL_CALL(glGenFramebuffers, 1, &m_scene_fbo);
     CHECKED_GL_CALL(glBindFramebuffer, GL_FRAMEBUFFER, m_scene_fbo);
 
-    // glavna boja
+
     CHECKED_GL_CALL(glGenTextures, 1, &m_scene_color_tex);
     CHECKED_GL_CALL(glBindTexture, GL_TEXTURE_2D, m_scene_color_tex);
     CHECKED_GL_CALL(glTexImage2D, GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, nullptr);

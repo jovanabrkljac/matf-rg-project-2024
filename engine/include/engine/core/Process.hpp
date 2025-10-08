@@ -2,7 +2,6 @@
 #define PROCESS_HPP
 
 namespace engine::core {
-    //proces ima zivotni ciklus(init, update, finalize) trajanje(duration) i trenutno stanje(State)
     class Process {
     public:
         enum class State { JustCreated, Running, Paused, Done };
@@ -11,7 +10,7 @@ namespace engine::core {
 
         virtual bool initialize();
 
-        virtual void update(float dt) = 0;
+        virtual void update() = 0;
 
         virtual void finalize();
 
